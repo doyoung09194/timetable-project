@@ -7,4 +7,5 @@ sdk: gradio
 sdk_version: 4.44.0
 app_file: app_gradio.py
 pinned: false
+python_version: "3.10"
 ---
