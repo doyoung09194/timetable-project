@@ -5,12 +5,12 @@ from datetime import datetime
 # gradio_client 버그 패치: bool 스키마 처리 오류 수정
 try:
     import gradio_client.utils as _gcu
-    _orig_get_type = _gcu.get_type
-    def _patched_get_type(schema):
-        if not isinstance(schema, dict):
+    _orig_fn = _gcu._json_schema_to_python_type
+    def _patched_fn(schema, defs=None):
+        if isinstance(schema, bool):
             return "any"
-        return _orig_get_type(schema)
-    _gcu.get_type = _patched_get_type
+        return _orig_fn(schema, defs)
+    _gcu._json_schema_to_python_type = _patched_fn
 except Exception:
     pass
 
