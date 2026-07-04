@@ -1,6 +1,19 @@
 import gradio as gr
 import tempfile
 from datetime import datetime
+
+# gradio_client 버그 패치: bool 스키마 처리 오류 수정
+try:
+    import gradio_client.utils as _gcu
+    _orig_get_type = _gcu.get_type
+    def _patched_get_type(schema):
+        if not isinstance(schema, dict):
+            return "any"
+        return _orig_get_type(schema)
+    _gcu.get_type = _patched_get_type
+except Exception:
+    pass
+
 from ocr_processor import extract_raw
 from text_parser import parse_timetable
 from ics_generator import generate_ics
