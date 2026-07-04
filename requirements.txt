@@ -1,0 +1,6 @@
+flask
+easyocr
+icalendar
+pillow
+gunicorn
+gradio
