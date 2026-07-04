@@ -3,3 +3,4 @@ icalendar
 pillow
 huggingface-hub==0.23.4
 gradio==4.36.1
+gradio-client==0.12.0
