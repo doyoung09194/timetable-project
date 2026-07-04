@@ -1,0 +1,33 @@
+import gradio as gr
+import tempfile
+import os
+from datetime import datetime
+from ocr_processor import extract_raw
+from text_parser import parse_timetable
+from ics_generator import generate_ics
+
+def convert(images):
+    timetable = {}
+    for image in images:
+        raw = extract_raw(image)
+        result = parse_timetable(raw)
+        for day, periods in result.items():
+            if day not in timetable:
+                timetable[day] = {}
+            timetable[day].update(periods)
+
+    ics_data = generate_ics(timetable, datetime.today())
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.ics')
+    tmp.write(ics_data)
+    tmp.close()
+    return tmp.name
+
+demo = gr.Interface(
+    fn=convert,
+    inputs=gr.File(file_count="multiple", label="시간표 사진 업로드"),
+    outputs=gr.File(label="캘린더 파일 다운로드"),
+    title="📅 학교 시간표 → 캘린더 변환기",
+    description="시간표 사진을 올리면 캘린더(.ics) 파일로 변환해드려요!"
+)
+
+demo.launch()
