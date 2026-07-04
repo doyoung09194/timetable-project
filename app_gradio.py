@@ -32,4 +32,4 @@ with gr.Blocks(title="학교 시간표 → 캘린더 변환기") as demo:
     btn = gr.Button("변환하기", variant="primary")
     btn.click(fn=convert, inputs=file_input, outputs=file_output)
 
-demo.launch()
+demo.launch(show_api=False)
