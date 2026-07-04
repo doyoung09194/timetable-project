@@ -23,7 +23,16 @@ def convert(images):
         return None
     timetable = {}
     for image in images:
-        image_path = image if isinstance(image, str) else image.name
+        if isinstance(image, str):
+            image_path = image
+        elif hasattr(image, 'path'):
+            image_path = image.path
+        elif hasattr(image, 'name'):
+            image_path = image.name
+        elif isinstance(image, dict):
+            image_path = image.get('path') or image.get('name')
+        else:
+            image_path = str(image)
         raw = extract_raw(image_path)
         result = parse_timetable(raw)
         for day, periods in result.items():
