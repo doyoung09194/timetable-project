@@ -27,7 +27,7 @@ with gr.Blocks(title="학교 시간표 → 캘린더 변환기") as demo:
     gr.Markdown("# 📅 학교 시간표 → 캘린더 변환기")
     gr.Markdown("시간표 사진을 올리면 캘린더(.ics) 파일로 변환해드려요!")
     with gr.Row():
-        file_input = gr.File(file_count="multiple", label="시간표 사진 업로드")
+        file_input = gr.Files(label="시간표 사진 업로드")
         file_output = gr.File(label="캘린더 파일 다운로드")
     btn = gr.Button("변환하기", variant="primary")
     btn.click(fn=convert, inputs=file_input, outputs=file_output)
