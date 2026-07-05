@@ -23,10 +23,6 @@ def convert(image1, image2):
     for image_path in [image1, image2]:
         if image_path is None:
             continue
-        if hasattr(image_path, 'path'):
-            image_path = image_path.path
-        elif not isinstance(image_path, str):
-            continue
         raw = extract_raw(image_path)
         result = parse_timetable(raw)
         for day, periods in result.items():
@@ -44,8 +40,8 @@ def convert(image1, image2):
 demo = gr.Interface(
     fn=convert,
     inputs=[
-        gr.File(label="시간표 사진 1"),
-        gr.File(label="시간표 사진 2 (선택사항)"),
+        gr.Image(type="filepath", label="시간표 사진 1", height=200),
+        gr.Image(type="filepath", label="시간표 사진 2 (선택사항)", height=200),
     ],
     outputs=gr.File(label="캘린더 파일 다운로드"),
     title="📅 학교 시간표 → 캘린더 변환기",
