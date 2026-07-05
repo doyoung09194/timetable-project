@@ -21,6 +21,7 @@ from subject_matcher import correct_subject
 def convert(image1, image2):
     timetable = {}
     debug_lines = []
+    shared_day_x = None
 
     for image_path in [image1, image2]:
         if image_path is None:
@@ -32,7 +33,9 @@ def convert(image1, image2):
             mark = " ✓" if corrected != text.strip() else ""
             debug_lines.append(f"  '{text.strip()}'{mark}")
 
-        result = parse_timetable(raw)
+        result, detected_day_x = parse_timetable(raw, shared_day_x=shared_day_x)
+        if detected_day_x and shared_day_x is None:
+            shared_day_x = detected_day_x  # 첫 이미지 열 위치를 두 번째에 전달
         debug_lines.append(f"파싱 결과: {result}")
 
         for day, periods in result.items():
@@ -42,7 +45,7 @@ def convert(image1, image2):
 
     debug_text = "\n".join(debug_lines)
 
-    if not timetable:
+    if not timetable or all(len(v) == 0 for v in timetable.values()):
         return None, "인식된 과목이 없습니다.\n\n" + debug_text
 
     ics_data = generate_ics(timetable, datetime.today())
@@ -54,7 +57,7 @@ def convert(image1, image2):
 demo = gr.Interface(
     fn=convert,
     inputs=[
-        gr.Image(type="filepath", label="시간표 사진 1", height=200),
+        gr.Image(type="filepath", label="시간표 사진 1 (헤더 포함)", height=200),
         gr.Image(type="filepath", label="시간표 사진 2 (선택사항)", height=200),
     ],
     outputs=[
