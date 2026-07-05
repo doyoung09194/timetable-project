@@ -2,7 +2,6 @@ from config import DAYS_KR
 from subject_matcher import correct_subject
 
 def _cluster_columns(x_list, gap=80):
-    """x 좌표 리스트를 간격 기준으로 컬럼 그룹으로 묶기"""
     if not x_list:
         return []
     sorted_xs = sorted(set(int(x) for x in x_list))
@@ -29,9 +28,10 @@ def parse_timetable(raw_results):
     # 요일 헤더 x 좌표
     day_x = {item['text']: item['x'] for item in items if item['text'] in DAYS_KR}
 
-    # 헤더 없으면 과목 x 좌표로 컬럼 추정
     if len(day_x) < 3:
-        subj_items = [item for item in items if correct_subject(item['text']) != item['text']]
+        subj_items = [item for item in items
+                      if item['text'] not in DAYS_KR
+                      and correct_subject(item['text']) != item['text']]
         if not subj_items:
             return {}
         col_centers = _cluster_columns([i['x'] for i in subj_items])
@@ -39,55 +39,30 @@ def parse_timetable(raw_results):
             return {}
         day_x = {DAYS_KR[i]: col_centers[i] for i in range(min(5, len(col_centers)))}
 
-    # 교시 번호 찾기 (왼쪽 끝 컬럼에 있는 1~7)
+    # 교시 번호 찾기 (왼쪽 컬럼)
     min_x = min(item['x'] for item in items)
-    period_items = sorted(
-        [item for item in items
-         if item['text'] in [str(i) for i in range(1, 8)]
-         and item['x'] < min_x + 150],
-        key=lambda i: i['y']
-    )
+    period_items = [item for item in items
+                    if item['text'] in [str(i) for i in range(1, 8)]
+                    and item['x'] < min_x + 200]
 
-    if period_items:
-        # 교시 번호 기반 파싱
-        for p_item in period_items:
-            period_num = int(p_item['text'])
-            p_y = p_item['y']
-            row_items = [i for i in items
-                         if abs(i['y'] - p_y) < 45 and i['x'] > p_item['x'] + 30]
-            for item in row_items:
-                corrected = correct_subject(item['text'])
-                if corrected != item['text']:
-                    closest = min(day_x, key=lambda d: abs(day_x[d] - item['x']))
-                    timetable[closest][period_num] = corrected
-    else:
-        # 헤더 아래 행 순서대로 파싱
-        header_y = max((item['y'] for item in items if item['text'] in DAYS_KR), default=0)
-        below = sorted([i for i in items if i['y'] > header_y + 10], key=lambda i: i['y'])
-        if not below:
-            return {}
+    if not period_items:
+        return {}
 
-        rows, current = [], [below[0]]
-        for item in below[1:]:
-            if abs(item['y'] - current[-1]['y']) < 30:
-                current.append(item)
-            else:
-                rows.append(current)
-                current = [item]
-        if current:
-            rows.append(current)
+    # 과목으로 인식된 아이템들 (요일 제외, 최소 2글자)
+    subject_items = [item for item in items
+                     if item['text'] not in DAYS_KR
+                     and item['x'] > min_x + 80
+                     and correct_subject(item['text']) != item['text']]
 
-        period = 1
-        for row in rows:
-            day_subjects = {}
-            for item in row:
-                corrected = correct_subject(item['text'])
-                if corrected != item['text']:
-                    closest = min(day_x, key=lambda d: abs(day_x[d] - item['x']))
-                    day_subjects[closest] = corrected
-            if len(day_subjects) >= 2 and period <= 7:
-                for day, subj in day_subjects.items():
-                    timetable[day][period] = subj
-                period += 1
+    for subj_item in subject_items:
+        corrected = correct_subject(subj_item['text'])
+        if corrected == subj_item['text']:
+            continue
+        # 가장 가까운 교시 번호 (y 기준)
+        closest_period = min(period_items, key=lambda p: abs(p['y'] - subj_item['y']))
+        period_num = int(closest_period['text'])
+        # 가장 가까운 요일 (x 기준)
+        closest_day = min(day_x, key=lambda d: abs(day_x[d] - subj_item['x']))
+        timetable[closest_day][period_num] = corrected
 
     return timetable
