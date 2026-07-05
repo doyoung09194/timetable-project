@@ -48,6 +48,11 @@ def convert(image1, image2):
     if not timetable or all(len(v) == 0 for v in timetable.values()):
         return None, "인식된 과목이 없습니다.\n\n" + debug_text
 
+    # 수요일 5,6교시 창체 고정 (2학년 전체)
+    timetable.setdefault("수", {})
+    timetable["수"][5] = "창의적 체험활동"
+    timetable["수"][6] = "창의적 체험활동"
+
     ics_data = generate_ics(timetable, datetime.today())
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.ics')
     tmp.write(ics_data)
