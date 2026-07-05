@@ -21,7 +21,6 @@ from subject_matcher import correct_subject
 def convert(image1, image2):
     timetable = {}
     debug_lines = []
-    shared_day_x = None
 
     for image_path in [image1, image2]:
         if image_path is None:
@@ -33,9 +32,7 @@ def convert(image1, image2):
             mark = " ✓" if corrected != text.strip() else ""
             debug_lines.append(f"  '{text.strip()}'{mark}")
 
-        result, detected_day_x = parse_timetable(raw, shared_day_x=shared_day_x)
-        if detected_day_x and shared_day_x is None:
-            shared_day_x = detected_day_x  # 첫 이미지 열 위치를 두 번째에 전달
+        result = parse_timetable(raw)
         debug_lines.append(f"파싱 결과: {result}")
 
         for day, periods in result.items():

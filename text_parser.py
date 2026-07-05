@@ -37,11 +37,7 @@ def _fill_missing_periods(period_items):
             result.append({'x': ref['x'], 'y': ref['y'] + (p - ref['period']) * row_h, 'period': p})
     return result
 
-def parse_timetable(raw_results, shared_day_x=None):
-    """
-    Returns: (timetable dict, detected day_x dict)
-    shared_day_x: 첫 번째 이미지에서 감지된 열 위치 (두 번째 이미지에 전달)
-    """
+def parse_timetable(raw_results):
     items = []
     for bbox, text, conf in raw_results:
         cx = (bbox[0][0] + bbox[2][0]) / 2
@@ -49,32 +45,22 @@ def parse_timetable(raw_results, shared_day_x=None):
         items.append({'x': cx, 'y': cy, 'text': text.strip()})
 
     if not items:
-        return {day: {} for day in DAYS_KR}, None
+        return {day: {} for day in DAYS_KR}
 
     timetable = {day: {} for day in DAYS_KR}
+    day_x = {item['text']: item['x'] for item in items if item['text'] in DAYS_KR}
 
-    # 요일 헤더에서 열 위치 감지
-    detected_day_x = {item['text']: item['x'] for item in items if item['text'] in DAYS_KR}
-
-    if shared_day_x:
-        # 두 번째 이미지: 첫 번째에서 감지된 열 위치 사용 (단, 이미지 크기 보정)
-        # 두 이미지의 가로 비율이 같다고 가정
-        day_x = shared_day_x
-    elif len(detected_day_x) >= 3:
-        day_x = detected_day_x
-    else:
-        # 헤더 없음 + shared 없음: 과목 x좌표로 추정
+    if len(day_x) < 3:
         subj_items = [item for item in items
                       if item['text'] not in DAYS_KR
                       and correct_subject(item['text']) != item['text']]
         if not subj_items:
-            return timetable, None
+            return timetable
         col_centers = _cluster_columns([i['x'] for i in subj_items])
         if len(col_centers) < 2:
-            return timetable, None
+            return timetable
         day_x = {DAYS_KR[i]: col_centers[i] for i in range(min(5, len(col_centers)))}
 
-    # 교시 번호 찾기
     min_x = min(item['x'] for item in items)
     period_items = []
     for item in items:
@@ -85,11 +71,10 @@ def parse_timetable(raw_results, shared_day_x=None):
             period_items.append({'x': item['x'], 'y': item['y'], 'period': p})
 
     if not period_items:
-        return timetable, detected_day_x if len(detected_day_x) >= 3 else None
+        return timetable
 
     period_items = _fill_missing_periods(period_items)
 
-    # 과목 배정
     subject_items = [item for item in items
                      if item['text'] not in DAYS_KR
                      and item['x'] > min_x + 80
@@ -104,4 +89,4 @@ def parse_timetable(raw_results, shared_day_x=None):
         closest_day = min(day_x, key=lambda d: abs(day_x[d] - subj_item['x']))
         timetable[closest_day][period_num] = corrected
 
-    return timetable, detected_day_x if len(detected_day_x) >= 3 else None
+    return timetable
