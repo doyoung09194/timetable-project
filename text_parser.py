@@ -50,6 +50,15 @@ def parse_timetable(raw_results):
     timetable = {day: {} for day in DAYS_KR}
     day_x = {item['text']: item['x'] for item in items if item['text'] in DAYS_KR}
 
+    # 헤더 일부 미인식 시 보간 (예: '수' 잘림)
+    if 3 <= len(day_x) < 5:
+        for i, day in enumerate(DAYS_KR):
+            if day not in day_x:
+                prev = [DAYS_KR[j] for j in range(i-1, -1, -1) if DAYS_KR[j] in day_x]
+                nxt  = [DAYS_KR[j] for j in range(i+1, 5) if DAYS_KR[j] in day_x]
+                if prev and nxt:
+                    day_x[day] = (day_x[prev[0]] + day_x[nxt[0]]) / 2
+
     if len(day_x) < 3:
         subj_items = [item for item in items
                       if item['text'] not in DAYS_KR
