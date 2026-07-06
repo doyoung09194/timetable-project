@@ -83,6 +83,13 @@ def parse_timetable(raw_results):
 
     period_items = _fill_missing_periods(period_items)
 
+    # 행 높이 계산
+    sorted_p = sorted(period_items, key=lambda p: p['period'])
+    if len(sorted_p) >= 2:
+        row_h = (sorted_p[-1]['y'] - sorted_p[0]['y']) / (sorted_p[-1]['period'] - sorted_p[0]['period'])
+    else:
+        row_h = 240
+
     subject_items = [item for item in items
                      if item['text'] not in DAYS_KR
                      and item['x'] > min_x + 80
@@ -94,14 +101,22 @@ def parse_timetable(raw_results):
             continue
         closest_period = min(period_items, key=lambda p: abs(p['y'] - subj_item['y']))
         period_num = closest_period['period']
+        y_dist = abs(closest_period['y'] - subj_item['y'])
         sorted_days = sorted(day_x, key=lambda d: abs(day_x[d] - subj_item['x']))
-        assigned = False
-        for day in sorted_days:
-            if period_num not in timetable[day]:
-                timetable[day][period_num] = corrected
-                assigned = True
-                break
-        if not assigned:
-            timetable[sorted_days[0]][period_num] = corrected
+
+        # y 오차가 크면 다른 요일로 overflow 금지
+        if y_dist > 0.30 * row_h:
+            if period_num not in timetable[sorted_days[0]]:
+                timetable[sorted_days[0]][period_num] = corrected
+            # 이미 차있으면 skip (틀린 데이터 방지)
+        else:
+            assigned = False
+            for day in sorted_days:
+                if period_num not in timetable[day]:
+                    timetable[day][period_num] = corrected
+                    assigned = True
+                    break
+            if not assigned:
+                timetable[sorted_days[0]][period_num] = corrected
 
     return timetable
