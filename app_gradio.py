@@ -30,7 +30,12 @@ def convert(image1, image2):
         for bbox, text, conf in raw:
             corrected = correct_subject(text.strip())
             mark = " ✓" if corrected != text.strip() else ""
-            debug_lines.append(f"  '{text.strip()}'{mark}")
+            cx = int((bbox[0][0] + bbox[2][0]) / 2)
+            cy = int((bbox[0][1] + bbox[2][1]) / 2)
+            if mark:
+                debug_lines.append(f"  '{text.strip()}'{mark} x={cx} y={cy}")
+            else:
+                debug_lines.append(f"  '{text.strip()}'")
 
         result = parse_timetable(raw)
         debug_lines.append(f"파싱 결과: {result}")
