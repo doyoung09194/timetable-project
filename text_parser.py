@@ -50,7 +50,6 @@ def parse_timetable(raw_results):
     timetable = {day: {} for day in DAYS_KR}
     day_x = {item['text']: item['x'] for item in items if item['text'] in DAYS_KR}
 
-    # 헤더 일부 미인식 시 보간 (예: '수' 잘림)
     if 3 <= len(day_x) < 5:
         for i, day in enumerate(DAYS_KR):
             if day not in day_x:
@@ -95,7 +94,14 @@ def parse_timetable(raw_results):
             continue
         closest_period = min(period_items, key=lambda p: abs(p['y'] - subj_item['y']))
         period_num = closest_period['period']
-        closest_day = min(day_x, key=lambda d: abs(day_x[d] - subj_item['x']))
-        timetable[closest_day][period_num] = corrected
+        sorted_days = sorted(day_x, key=lambda d: abs(day_x[d] - subj_item['x']))
+        assigned = False
+        for day in sorted_days:
+            if period_num not in timetable[day]:
+                timetable[day][period_num] = corrected
+                assigned = True
+                break
+        if not assigned:
+            timetable[sorted_days[0]][period_num] = corrected
 
     return timetable
