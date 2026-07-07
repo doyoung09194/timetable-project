@@ -66,4 +66,4 @@ demo = gr.Interface(
     title="학교 시간표 -> 캘린더 변환기",
     description="시간표 사진을 올리면 캘린더(.ics) 파일로 변환해드려요!"
 )
-demo.launch()
+demo.launch(server_name="0.0.0.0")
