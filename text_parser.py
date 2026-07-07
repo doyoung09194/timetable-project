@@ -47,7 +47,6 @@ def _preprocess_raw(raw_results):
         if len(parts) <= 1:
             out.append((bbox, text, conf))
             continue
-        # bbox x 범위를 파트 수로 균등 분할
         x1 = bbox[0][0]
         x2 = bbox[2][0]
         y1 = bbox[0][1]
@@ -129,11 +128,9 @@ def parse_timetable(raw_results):
         y_dist = abs(closest_period['y'] - subj_item['y'])
         sorted_days = sorted(day_x, key=lambda d: abs(day_x[d] - subj_item['x']))
 
-        # y 오차가 크면 다른 요일로 overflow 금지
         if y_dist > 0.30 * row_h:
             if period_num not in timetable[sorted_days[0]]:
                 timetable[sorted_days[0]][period_num] = corrected
-            # 이미 차있으면 skip (틀린 데이터 방지)
         else:
             assigned = False
             for day in sorted_days:
@@ -143,5 +140,22 @@ def parse_timetable(raw_results):
                     break
             if not assigned:
                 timetable[sorted_days[0]][period_num] = corrected
+
+    # 호실 추가: 3자리 숫자를 가장 가까운 (요일, 교시) 셀에 붙이기
+    room_items = [item for item in items
+                  if re.fullmatch(r'\d{3}', item['text'])
+                  and item['x'] > min_x + 80]
+
+    col_gap = row_h * 0.6  # 열 간격 기준 (대략)
+    for room_item in room_items:
+        closest_day = min(day_x, key=lambda d: abs(day_x[d] - room_item['x']))
+        if abs(day_x[closest_day] - room_item['x']) > 80:
+            continue
+        closest_period = min(period_items, key=lambda p: abs(p['y'] - room_item['y']))
+        period_num = closest_period['period']
+        if period_num in timetable[closest_day]:
+            subj = timetable[closest_day][period_num]
+            if '호' not in subj:
+                timetable[closest_day][period_num] = f"{subj} {room_item['text']}"
 
     return timetable
