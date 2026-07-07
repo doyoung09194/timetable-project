@@ -1,3 +1,4 @@
+import re
 from config import DAYS_KR
 from subject_matcher import correct_subject
 
@@ -37,7 +38,31 @@ def _fill_missing_periods(period_items):
             result.append({'x': ref['x'], 'y': ref['y'] + (p - ref['period']) * row_h, 'period': p})
     return result
 
+def _preprocess_raw(raw_results):
+    """OCR이 여러 셀을 하나로 합친 경우(공백 2개 이상) 분리"""
+    out = []
+    for bbox, text, conf in raw_results:
+        parts = re.split(r'\s{2,}', text.strip())
+        parts = [p for p in parts if p]
+        if len(parts) <= 1:
+            out.append((bbox, text, conf))
+            continue
+        # bbox x 범위를 파트 수로 균등 분할
+        x1 = bbox[0][0]
+        x2 = bbox[2][0]
+        y1 = bbox[0][1]
+        y2 = bbox[2][1]
+        w = (x2 - x1) / len(parts)
+        for i, part in enumerate(parts):
+            px1 = x1 + i * w
+            px2 = px1 + w
+            new_bbox = [[px1, y1], [px2, y1], [px2, y2], [px1, y2]]
+            out.append((new_bbox, part, conf))
+    return out
+
 def parse_timetable(raw_results):
+    raw_results = _preprocess_raw(raw_results)
+
     items = []
     for bbox, text, conf in raw_results:
         cx = (bbox[0][0] + bbox[2][0]) / 2
