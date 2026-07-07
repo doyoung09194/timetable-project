@@ -1,5 +1,5 @@
-from icalendar import Calendar, Event
-from datetime import datetime, timedelta, date
+from icalendar import Calendar, Event, vDate, vDatetime
+from datetime import datetime, timedelta, date, timezone
 from config import DAY_MAP
 import uuid
 
@@ -13,11 +13,14 @@ def generate_ics(timetable, start_date, end_date=None):
     cal.add('method', 'PUBLISH')
 
     monday = start_date - timedelta(days=start_date.weekday())
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
+    # UNTIL: dtstart가 DATE이면 UNTIL도 반드시 DATE여야 함 (RFC 5545)
     rrule = {'freq': 'weekly'}
     if end_date:
-        rrule['until'] = end_date
+        if isinstance(end_date, datetime):
+            end_date = end_date.date()
+        rrule['until'] = end_date  # date 객체 그대로 전달
 
     for day_kr, periods in timetable.items():
         if day_kr not in DAYS_ORDER:
@@ -25,7 +28,7 @@ def generate_ics(timetable, start_date, end_date=None):
         day_offset = DAYS_ORDER.index(day_kr)
         event_date = (monday + timedelta(days=day_offset)).date()
 
-        for period, subject in periods.items():
+        for period, subject in sorted(periods.items()):
             event = Event()
             event.add('uid', str(uuid.uuid4()) + '@timetable')
             event.add('dtstamp', now)
