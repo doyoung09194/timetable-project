@@ -1,6 +1,6 @@
 import gradio as gr
 import tempfile
-from datetime import datetime
+from datetime import datetime, date
 
 try:
     import gradio_client.utils as _gcu
@@ -17,7 +17,7 @@ from ocr_processor import extract_raw
 from text_parser import parse_timetable
 from ics_generator import generate_ics
 
-def convert(image1, image2):
+def convert(image1, image2, end_date_str):
     timetable = {}
 
     for image_path in [image1, image2]:
@@ -37,7 +37,13 @@ def convert(image1, image2):
     timetable["수"][5] = "창의적 체험활동"
     timetable["수"][6] = "창의적 체험활동"
 
-    ics_data = generate_ics(timetable, datetime.today())
+    end_date = None
+    try:
+        end_date = datetime.strptime(end_date_str.strip(), "%Y-%m-%d").date()
+    except Exception:
+        pass
+
+    ics_data = generate_ics(timetable, datetime.today(), end_date)
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix='.ics')
     tmp.write(ics_data)
     tmp.close()
@@ -48,6 +54,7 @@ demo = gr.Interface(
     inputs=[
         gr.Image(type="filepath", label="시간표 사진 1 (헤더 포함)", height=200),
         gr.Image(type="filepath", label="시간표 사진 2 (선택사항)", height=200),
+        gr.Textbox(label="방학 시작일 (YYYY-MM-DD)", value="2026-07-20"),
     ],
     outputs=[
         gr.File(label="캘린더 파일 다운로드"),
