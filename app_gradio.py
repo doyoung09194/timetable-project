@@ -69,7 +69,7 @@ def convert(image1, image2, start_date_str, end_date_str):
     tmp.write(ics_data)
     tmp.close()
 
-    ios_html = f'<p style="text-align:center;margin-top:12px;font-size:15px;">📱 아이폰: <a href="/calendar/{token}.ics" style="color:#007AFF;font-weight:bold;">여기를 Safari에서 탭하세요</a></p>'
+    ios_html = f'<p style="text-align:center;margin-top:12px;font-size:15px;">아이폰: <a href="/calendar/{token}.ics" style="color:#007AFF;font-weight:bold;">여기를 Safari에서 탭하세요</a></p>'
 
     return tmp.name, ios_html
 
