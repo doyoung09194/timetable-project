@@ -104,60 +104,118 @@
     <p class="dl-note">아이폰은 반드시 Safari에서 열어주세요</p>
   </div>
 
-  <script type="module">
-    import { Client } from "https://esm.sh/@gradio/client@1.9.0";
+  <script>
+    var HF = "https://doy835277-timetable-converter.hf.space";
 
-    const SPACE = "doy835277/timetable-converter";
-    const HF_BASE = "https://doy835277-timetable-converter.hf.space";
-
-    window.fileSelected = function(n, input) {
-      const area = document.getElementById('area' + n);
+    function fileSelected(n, input) {
+      var area = document.getElementById('area' + n);
       if (input.files[0]) {
         area.textContent = '✓ ' + input.files[0].name;
         area.classList.add('has-file');
       }
-    };
+    }
 
-    window.submitForm = async function() {
-      const file1 = document.getElementById('file1').files[0];
+    function showError(msg) {
+      var el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.style.display = 'block';
+    }
+
+    function uploadFile(file) {
+      var fd = new FormData();
+      fd.append('files', file, file.name);
+      return fetch(HF + '/gradio_api/upload', { method: 'POST', body: fd })
+        .then(function(res) {
+          if (!res.ok) throw new Error('업로드 실패(' + res.status + ')');
+          return res.json();
+        })
+        .then(function(data) { return data[0]; });
+    }
+
+    function submitForm() {
+      var file1 = document.getElementById('file1').files[0];
       if (!file1) { showError('시간표 사진을 선택해주세요!'); return; }
-      const file2 = document.getElementById('file2').files[0] || null;
-      const startDate = document.getElementById('start-date').value;
-      const endDate = document.getElementById('end-date').value;
+      var file2 = document.getElementById('file2').files[0] || null;
+      var startDate = document.getElementById('start-date').value;
+      var endDate = document.getElementById('end-date').value;
 
       document.getElementById('submit-btn').disabled = true;
       document.getElementById('loading').style.display = 'block';
       document.getElementById('result').style.display = 'none';
       document.getElementById('error-msg').style.display = 'none';
 
-      try {
-        const client = await Client.connect(SPACE);
-        const result = await client.predict("/predict", [
-          file1, file2, startDate, endDate
-        ]);
+      var sessionHash = Math.random().toString(36).slice(2, 10);
 
-        const htmlStr = (result.data && result.data[1]) || "";
-        const match = htmlStr.match(/href="(\/calendar\/[^"]+)"/);
-        if (match) {
-          const url = HF_BASE + match[1];
-          document.getElementById('ios-link').href = url;
-          document.getElementById('dl-link').href = url;
+      var uploadPromises = [uploadFile(file1)];
+      if (file2) uploadPromises.push(uploadFile(file2));
+      else uploadPromises.push(Promise.resolve(null));
+
+      Promise.all(uploadPromises)
+        .then(function(refs) {
+          var ref1 = refs[0];
+          var ref2 = refs[1];
+
+          function makeFileData(path, file) {
+            if (!path) return null;
+            return { path: path, orig_name: file.name, meta: { _type: 'gradio.FileData' } };
+          }
+
+          var payload = {
+            data: [
+              makeFileData(ref1, file1),
+              ref2 ? makeFileData(ref2, file2) : null,
+              startDate,
+              endDate
+            ],
+            fn_index: 0,
+            session_hash: sessionHash,
+            event_data: null
+          };
+
+          return fetch(HF + '/gradio_api/queue/join', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        })
+        .then(function(res) {
+          if (!res.ok) throw new Error('큐 실패(' + res.status + ')');
+          return new Promise(function(resolve, reject) {
+            var es = new EventSource(HF + '/gradio_api/queue/data?session_hash=' + sessionHash);
+            var timer = setTimeout(function() { es.close(); reject(new Error('시간 초과')); }, 120000);
+            es.onmessage = function(e) {
+              try {
+                var msg = JSON.parse(e.data);
+                if (msg.msg === 'process_completed') {
+                  clearTimeout(timer); es.close();
+                  var out = msg.output && msg.output.data;
+                  if (out && out[1]) {
+                    var m = out[1].match(/href="(\/calendar\/[^"]+)"/);
+                    if (m) {
+                      var url = HF + m[1];
+                      document.getElementById('ios-link').href = url;
+                      document.getElementById('dl-link').href = url;
+                      resolve();
+                    } else reject(new Error('링크 없음'));
+                  } else reject(new Error('결과 없음'));
+                } else if (msg.msg === 'error') {
+                  clearTimeout(timer); es.close(); reject(new Error('서버 오류'));
+                }
+              } catch(ex) {}
+            };
+            es.onerror = function() { clearTimeout(timer); es.close(); reject(new Error('연결 끊김')); };
+          });
+        })
+        .then(function() {
           document.getElementById('result').style.display = 'block';
-        } else {
-          throw new Error("캘린더 링크를 받지 못했어요. 다시 시도해주세요.");
-        }
-      } catch(err) {
-        showError('오류: ' + err.message);
-      } finally {
-        document.getElementById('submit-btn').disabled = false;
-        document.getElementById('loading').style.display = 'none';
-      }
-    };
-
-    function showError(msg) {
-      const el = document.getElementById('error-msg');
-      el.textContent = msg;
-      el.style.display = 'block';
+        })
+        .catch(function(err) {
+          showError('오류: ' + err.message);
+        })
+        .finally(function() {
+          document.getElementById('submit-btn').disabled = false;
+          document.getElementById('loading').style.display = 'none';
+        });
     }
   </script>
 </body>
