@@ -5,12 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>시간표 → 캘린더 변환기</title>
   <style>
+    :root { color-scheme: light; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
       background: #f2f2f7; min-height: 100vh; padding: 20px 16px;
       color: #1c1c1e;
     }
+    .wrap { max-width: 480px; margin: 0 auto; }
     h1 { font-size: 22px; font-weight: 700; margin: 8px 0 4px; }
     .subtitle { font-size: 14px; color: #8e8e93; margin-bottom: 20px; }
     .card {
@@ -60,6 +62,7 @@
   </style>
 </head>
 <body>
+<div class="wrap">
   <h1>시간표 → 캘린더 변환기</h1>
   <p class="subtitle">시간표 사진을 올리면 캘린더(.ics) 파일로 변환해드려요!</p>
 
@@ -103,6 +106,7 @@
     <a id="dl-link" href="#" class="dl-btn other" download="시간표.ics">안드로이드 / PC: 파일 다운로드</a>
     <p class="dl-note">아이폰은 반드시 Safari에서 열어주세요</p>
   </div>
+</div>
 
   <script>
     var HF = "https://doy835277-timetable-converter.hf.space";
