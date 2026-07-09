@@ -155,7 +155,7 @@ def parse_timetable(raw_results):
         period_num = closest_period['period']
         if period_num in timetable[closest_day]:
             subj = timetable[closest_day][period_num]
-            if '호' not in subj:
+            if '호' not in subj and room_item['text'] not in subj:
                 timetable[closest_day][period_num] = f"{subj} {room_item['text']}"
 
     return timetable
